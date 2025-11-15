@@ -119,6 +119,8 @@ class helpers:
             response = session.get(f"{BASE_URL_V3}/{token}")
             if response.status_code == 200:
                 game = response.json()
+                if game['status'] != 'Finished':
+                    continue
                 me = 0
                 other = 1
                 if game['teams'][1]['players'][0]['playerId'] == my_player_Id:
@@ -183,9 +185,15 @@ class helpers:
                     data_dict['Game Id'].append(game['gameId'])
 
                     data_dict['Date'].append(game['rounds'][0]['startTime'])
+                    if game['rounds'][0]['startTime'] is None:
+                        print(repr(game))
 
-                    data_dict['Map Name'].append(
-                        game['options']['map']['name'])
+                    if game['options']['map'] is not None:
+                        data_dict['Map Name'].append(
+                            game['options']['map']['name'])
+                    else:
+                        map_data = session.get(f"https://www.geoguessr.com/api/maps/{game['options']['mapSlug']}").json()
+                        data_dict['Map Name'].append(map_data['name'])
                     data_dict['Game Mode'].append(
                         game['options']['competitiveGameMode'])
 
@@ -207,8 +215,11 @@ class helpers:
                             data_dict['Your Rating'].append(
                                 game['teams'][me]['players'][0]['progressChange']['competitiveProgress']['ratingAfter'])
                         else:
-                            data_dict['Your Rating'].append(
-                                game['teams'][me]['players'][0]['progressChange']["rankedSystemProgress"]['ratingAfter'])
+                            if game['teams'][me]['players'][0]['progressChange']["rankedSystemProgress"] is not None:
+                                data_dict['Your Rating'].append(
+                                    game['teams'][me]['players'][0]['progressChange']["rankedSystemProgress"]['ratingAfter'])
+                            else:
+                                data_dict['Your Rating'].append(game['teams'][me]['players'][0]['rating'])
                     else:
                         data_dict['Your Rating'].append(np.nan)
                     # in some cases, both above are none so take just the normal rating
@@ -221,8 +232,11 @@ class helpers:
                             data_dict['Opponent Rating'].append(
                                 game['teams'][other]['players'][0]['progressChange']['competitiveProgress']['ratingAfter'])
                         else:
-                            data_dict['Opponent Rating'].append(
-                                game['teams'][other]['players'][0]['progressChange']["rankedSystemProgress"]['ratingAfter'])
+                            if game['teams'][other]['players'][0]['progressChange']["rankedSystemProgress"] is not None:
+                                data_dict['Opponent Rating'].append(
+                                    game['teams'][other]['players'][0]['progressChange']["rankedSystemProgress"]['ratingAfter'])
+                            else:
+                                data_dict['Opponent Rating'].append(game['teams'][other]['players'][0]['rating'])
                     else:
                         data_dict['Opponent Rating'].append(np.nan)
                     if data_dict['Opponent Rating'][-1] is None:
